@@ -28,8 +28,10 @@ def create_parser():
         """
     )
 
-    parser.add_argument("-f", "--feed", help="feed database with data", action='store_true')
-    parser.add_argument("-s", "--strat", help="buy or sell", action='store_true')
+    parser.add_argument(
+        "-f", "--feed", help="feed database with data", action="store_true"
+    )
+    parser.add_argument("-s", "--strat", help="buy or sell", action="store_true")
     parser.add_argument("symbol", help="symbol of crypto to look up")
 
     return parser
@@ -51,7 +53,7 @@ async def main(args):
         await feed_data(symbol)
 
     if strat:
-        strategy(0.0001, 60, 0.0001, symbol)
+        strategy(0.001, 60, 0.001, symbol)
 
 
 async def feed_data(sym):
@@ -92,13 +94,22 @@ def strategy(entry, lookback, qty, sym, open_pos=False):
     """
     bin_sym = f"{sym}USDT"
     while True:
-        sql_df = pd.read_sql("cT_ETH", db_engine)
+        sql_df = pd.read_sql(f"cT_{sym}", db_engine)
+
+        # looking back at the last 60 valid entries in db
         lookbackperiod = sql_df.iloc[-lookback:]
-        cumilitive_return = (lookbackperiod.Price.pct_change() + 1).cumprod() - 1
-        print(cumilitive_return)
+        # print(lookbackperiod.Price.pct_change())
+
+        # accumilating the returns from the lookbackperiod
+        cum_ret = (lookbackperiod.Price.pct_change() + 1).cumprod() - 1
+        print(f"cum_returns\n{cum_ret}")
+
         if not open_pos:
-            if cumilitive_return[cumilitive_return.last_valid_index()] > entry:
+            if cum_ret[cum_ret.last_valid_index()] > entry:
                 # loop getting stuck on this line ^^^
+                # TODO:
+                    # needs to interval between feed and strat otherwise will
+                        # always look at last 60 entries
                 order = client.create_order(
                     symbol=bin_sym, side="BUY", TYPE="market", quantity=qty
                 )
