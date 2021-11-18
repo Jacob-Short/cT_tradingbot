@@ -31,7 +31,6 @@ def create_parser():
     parser.add_argument(
         "-f", "--feed", help="feed database with data", action="store_true"
     )
-    parser.add_argument("-s", "--strat", help="buy or sell", action="store_true")
     parser.add_argument("symbol", help="symbol of crypto to look up")
 
     return parser
@@ -43,7 +42,6 @@ async def main(args):
     ns = parser.parse_args(args)
 
     feed = ns.feed
-    strat = ns.strat
     symbol = ns.symbol
 
     if not ns:
@@ -52,24 +50,26 @@ async def main(args):
     if feed:
         await feed_data(symbol)
 
-    if strat:
-        strategy(0.001, 60, 0.001, symbol)
-
 
 async def feed_data(sym):
     bsm = BinanceSocketManager(client)
     bin_sym = f"{sym}USDT"
     socket = bsm.trade_socket(bin_sym)
     async with socket as bsm_socket:
-        while True:
+        print("Generating data...")
+        for _ in range(60):
             response = await bsm_socket.recv()
             # print(response)
             df = create_data_frame(response)
             df.to_sql(f"cT_{sym}", db_engine, if_exists="append", index=False)
             sql_df = pd.read_sql(f"cT_{sym}", db_engine)
             print(sql_df)
+            print("downloading...")
+
 
             client.close_connection()
+        # os.system('clear')
+        strategy(0.001, 60, 0.001, sym)
 
 
 def create_data_frame(rs):
@@ -90,32 +90,34 @@ def strategy(entry, lookback, qty, sym, open_pos=False):
     Trend-following
     if the crypto was rising by x % --> Buy
     exit when profit is above 0.15% or loss is crossing -0.15%
-    strategy(<entry>, <lookback>, client, bin_sym)
     """
     bin_sym = f"{sym}USDT"
-    while True:
-        sql_df = pd.read_sql(f"cT_{sym}", db_engine)
+    # while True:
+    print('Developing strategy...')
 
-        # looking back at the last 60 valid entries in db
-        lookbackperiod = sql_df.iloc[-lookback:]
-        # print(lookbackperiod.Price.pct_change())
+    sql_df = pd.read_sql(f"cT_{sym}", db_engine)
+    # looking back at the last 60 valid entries in db
+    lookbackperiod = sql_df.iloc[-lookback:]
+    # print(lookbackperiod.Price.pct_change())
+    print('Accumilating returns...')
+    # accumilating the returns from the lookbackperiod
+    cum_ret = (lookbackperiod.Price.pct_change() + 1).cumprod() - 1
+    print('Returns completed')
+    print(f"Accumilated Returns:\n{cum_ret}")
+    print("Done")
+    if not open_pos:
+        if cum_ret[cum_ret.last_valid_index()] > entry:
+            # loop getting stuck on this line ^^^
+            # TODO:
+            # needs to interval between feed and strat otherwise will
+            # always look at last 60 entries
+            order = client.create_order(
+                symbol=bin_sym, side="BUY", TYPE="market", quantity=qty
+            )
+            print(order)
+            open_pos = True
+            # break
 
-        # accumilating the returns from the lookbackperiod
-        cum_ret = (lookbackperiod.Price.pct_change() + 1).cumprod() - 1
-        print(f"cum_returns\n{cum_ret}")
-
-        if not open_pos:
-            if cum_ret[cum_ret.last_valid_index()] > entry:
-                # loop getting stuck on this line ^^^
-                # TODO:
-                    # needs to interval between feed and strat otherwise will
-                        # always look at last 60 entries
-                order = client.create_order(
-                    symbol=bin_sym, side="BUY", TYPE="market", quantity=qty
-                )
-                print(order)
-                open_pos = True
-                break
     if open_pos:
         while True:
             sql_df = pd.read_sql("cT_ETH", db_engine)
