@@ -51,7 +51,7 @@ async def main(args):
         await feed_data(symbol)
 
     if strat:
-        strategy(0.001, 60, 0.001, symbol)
+        strategy(0.0001, 60, 0.0001, symbol)
 
 
 async def feed_data(sym):
@@ -95,6 +95,7 @@ def strategy(entry, lookback, qty, sym, open_pos=False):
         sql_df = pd.read_sql("cT_ETH", db_engine)
         lookbackperiod = sql_df.iloc[-lookback:]
         cumilitive_return = (lookbackperiod.Price.pct_change() + 1).cumprod() - 1
+        print(cumilitive_return)
         if not open_pos:
             if cumilitive_return[cumilitive_return.last_valid_index()] > entry:
                 # loop getting stuck on this line ^^^

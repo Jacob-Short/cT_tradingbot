@@ -14,6 +14,8 @@ for notes on deploying the project on a live system.
 Requirements for the software and other tools to build, test and push 
 - [Poetry](https://python-poetry.org/)
 - [Python](https://www.python.org/)
+- [matplotlib](https://matplotlib.org/)
+- [pandas](https://pandas.pydata.org/)
 
 ### Installing
 
