@@ -90,19 +90,27 @@ def create_data_frame(rs: dict) -> pd.core.frame.DataFrame:
     return df
 
 
+"""
+Trend following:
+    if the crypto was rising by x( entry ) % -> Buy
+    exit when proft is above 0.15% or loss is crossing -0.15%
+"""
+
+
 def strategy(
     entry: float, lookback: int, qty: float, sym: str, open_pos: bool = False
 ) -> None:
     """
-    Trend-following
-    if the crypto was rising by x % --> Buy
-    exit when profit is above 0.15% or loss is crossing -0.15%
+    Entry: crypto must have rised this amount is the last y ( lookback )
+    Lookback: How many previos seconds to capture in this strategy
+    Qauntity: Which we want to trade
+    OpenPositon: Important for selling condition
     """
     bin_sym = f"{sym}USDT"
     # while True:
 
     print("Developing strategy...")
-    time.sleep(1)
+    # time.sleep(1)
 
     sql_df = pd.read_sql(f"cT_{sym}", db_engine)
     # looking back at the last 60 valid entries in db
@@ -114,9 +122,12 @@ def strategy(
     cum_ret = (lookbackperiod.Price.pct_change() + 1).cumprod() - 1
     print("Returns completed")
     time.sleep(1)
-    print(f"Accumilated Returns:\n{cum_ret}")
+    accum_return_print = 'Accumilated Returns:'
+    print('-' * len(accum_return_print))
+    print(f"{accum_return_print}\n{cum_ret}")
+    print('-' * len(accum_return_print))
     # print("Done")
-    time.sleep(1)
+    time.sleep(5)
 
     if not open_pos:
         if cum_ret[cum_ret.last_valid_index()] > entry:
