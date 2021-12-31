@@ -22,7 +22,7 @@ db_engine = sqlalchemy.create_engine("sqlite:///cTracker.db")
 client = Client(mysecrets.API_KEY, mysecrets.SECRET_KEY)
 
 
-def create_parser():
+def create_parser() -> argparse.ArgumentParser:
     """Returns an instance Parser"""
     parser = argparse.ArgumentParser(
         description="""Will connect to crypto socket
@@ -39,7 +39,7 @@ def create_parser():
     return parser
 
 
-async def main(args):
+async def main(args) -> None:
 
     parser = create_parser()
     ns = parser.parse_args(args)
@@ -55,7 +55,7 @@ async def main(args):
         await feed_data(symbol, pulls)
 
 
-async def feed_data(sym, pulls):
+async def feed_data(sym: str, pulls: int) -> None:
     bsm = BinanceSocketManager(client)
     bin_sym = f"{sym}USDT"
     socket = bsm.trade_socket(bin_sym)
@@ -77,7 +77,7 @@ async def feed_data(sym, pulls):
             strategy(0.0001, pulls, 0.001, sym)
 
 
-def create_data_frame(rs):
+def create_data_frame(rs: dict) -> pd.core.frame.DataFrame:
     """
     Takes in a dictionary and returns
     a pandas data frame
@@ -90,7 +90,9 @@ def create_data_frame(rs):
     return df
 
 
-def strategy(entry, lookback, qty, sym, open_pos=False):
+def strategy(
+    entry: float, lookback: int, qty: float, sym: str, open_pos: bool = False
+) -> None:
     """
     Trend-following
     if the crypto was rising by x % --> Buy
@@ -113,7 +115,7 @@ def strategy(entry, lookback, qty, sym, open_pos=False):
     print("Returns completed")
     time.sleep(1)
     print(f"Accumilated Returns:\n{cum_ret}")
-    print("Done")
+    # print("Done")
     time.sleep(1)
 
     if not open_pos:
@@ -124,7 +126,6 @@ def strategy(entry, lookback, qty, sym, open_pos=False):
                 )
                 print(order)
                 open_pos = True
-                # break
             except binance.exceptions.BinanceAPIException:
                 print("You do not have permission to BUY")
 
